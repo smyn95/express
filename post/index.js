@@ -4,6 +4,7 @@ const router = express.Router();
 // 글 정보를 담을 배열과 id
 const posts = {
   data: [],
+  id: 1,
 };
 
 // 글 전체 조회
@@ -13,11 +14,10 @@ router.get("/", (req, res) => {
 
 // 글 단일 조회
 router.get("/:id", (req, res) => {
-  const postId = req.params.id;
-  const post = posts.data.find((p) => p.id === postId);
-
+  const post = posts.data.find((post) => post.id === parseInt(req.params.id));
+  // TODO 글이 존재하는지 체크
   if (!post) {
-    res.status(404).json({ error: "게시글을 찾을 수 없습니다." });
+    res.status(400).send({ message: "존재하지 않는 글입니다." });
     return;
   }
   res.send(post);
@@ -28,21 +28,22 @@ router.post("/", (req, res) => {
   const { title, content } = req.body;
 
   if (!title || !content) {
-    res.status(400).send({ message: "Title, content는 필수 입력 사항입니다." });
+    res.status(400).send({ message: "제목과 내용은 필수 입력 사항입니다." });
     return;
   }
+  // TODO 글 추가
   posts.data.push({
     ...req.body,
     id: posts.id,
   });
   posts.id++;
-  res.send({ message: "글을 등록했습니다." });
+  res.send({ message: "등록이 완료되었습니다." });
 });
 
 // 글 수정
 router.put("/:id", (req, res) => {
   const { title, content } = req.body;
-
+  // TODO id, title, content가 있는지 체크
   if (!req.params.id || !title || !content) {
     res
       .status(400)
@@ -50,12 +51,13 @@ router.put("/:id", (req, res) => {
     return;
   }
   const post = posts.data.find((post) => post.id === parseInt(req.params.id));
-
+  // TODO 글이 존재하는지 체크
   if (!post) {
     res.status(400).send({ message: "존재하지 않는 글입니다." });
     return;
   }
 
+  // TODO 글 수정
   post.title = title;
   post.content = content;
   res.send({ message: "글을 수정했습니다." });
@@ -68,7 +70,7 @@ router.delete("/:id", (req, res) => {
     return;
   }
   const post = posts.data.find((post) => post.id === parseInt(req.params.id));
-
+  // TODO 글이 존재하는지 체크
   if (!post) {
     res.status(400).send({ message: "존재하지 않는 글입니다." });
     return;
