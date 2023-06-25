@@ -1,15 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-// id로 글 조회 함수
-async function getbyId(_id) {
+// id로 글 조회
+async function getById(_id) {
   try {
-    const { rows } = await database.query(`
-      select _posts.id, name, title, content, created_on
-      from _posts
-      inner join _users
-      on _posts.user_id = _users.id
-      where _posts.id = '${_id}'
+    const { rows } = await connection.query(`
+        select _posts.id, name, title, content, created_on 
+        from _posts
+          inner join _users 
+          on _posts.user_id = _users.id
+        where _posts.id = '${_id}'
     `);
     return rows[0];
   } catch (error) {
@@ -17,10 +17,10 @@ async function getbyId(_id) {
   }
 }
 
-// 글 생성 함수
+// 글 생성
 async function create({ user_id, title, content }) {
   try {
-    await database.query(`
+    await connection.query(`
 		insert into _posts (id, user_id, title, content, created_on) 
 		values ('${uuid.v1()}', '${user_id}', '${title}', '${content}', 
 				'${new Date().toISOString()}')`);
@@ -30,12 +30,12 @@ async function create({ user_id, title, content }) {
   }
 }
 
-// 글 수정 함수
+// 글 수정
 async function update({ user_id, id, title, content }) {
   const post = await getById(id);
   if (!post) return null;
   try {
-    await database.query(`
+    await connection.query(`
     update _posts
     set title ='${title}', content='${content}'
     where id=='${id}'`);
@@ -50,7 +50,7 @@ async function remove({ user_id, _id }) {
   const post = await getById(_id);
   if (!post) return null;
   try {
-    await database.query(`delete from _posts where id='${_id}'`);
+    await connection.query(`delete from _posts where id='${_id}'`);
     return true;
   } catch (error) {
     return null;
@@ -60,7 +60,7 @@ async function remove({ user_id, _id }) {
 // 글 전체 조회
 router.get("/", async (req, res) => {
   try {
-    const { rows } = await database.query(`
+    const { rows } = await connection.query(`
       select _posts.id, name, title, created_on 
       from _posts inner join _users on _posts.user_id = _users.id
     `);

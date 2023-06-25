@@ -1,7 +1,8 @@
 const express = require("express");
-const postRouter = require("./src/api/post");
-const app = express();
+const postRouter = require("./src/api/posts");
 const port = 3005;
+
+const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
