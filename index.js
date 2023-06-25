@@ -1,18 +1,16 @@
 const express = require("express");
-const postRouter = require("./post");
-
+const postRouter = require("./src/api/post");
 const app = express();
 const port = 3005;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("./api/posts", postRouter);
 
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.path} | ${new Date().toLocaleString()}`);
   next();
 });
-
-app.use("/post", postRouter);
 
 app.get("/", (req, res) => {
   res.status(200).send("Hello World!");
