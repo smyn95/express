@@ -1,21 +1,18 @@
-const mysql = require("mysql");
+const mysql = require("mysql2");
 
 const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  host: "127.0.0.1",
+  user: "root",
+  password: "9593",
+  port: 3306,
+  database: "slog",
 });
 
 connection.connect(function (error) {
   if (error) throw error;
   console.log("connected");
-  connection.query("CREATE DATABASE express_db", function (err, result) {
+  connection.query("CREATE DATABASE express_db", function (error, result) {
     if (error) throw error;
-    console.log("database created");
+    console.log(result);
   });
 });
-
-connection.connect();
-
-module.exports = connection;

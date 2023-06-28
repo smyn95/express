@@ -1,4 +1,5 @@
 const express = require("express");
+const connection = require("../../db");
 const router = express.Router();
 
 // id로 글 조회
