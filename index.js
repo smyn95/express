@@ -6,14 +6,14 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("./api/posts", postRouter);
+app.use("/api/posts", postRouter);
 
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.path} | ${new Date().toLocaleString()}`);
   next();
 });
 
-app.get("/", (req, res) => {
+app.get("/api/posts", (req, res) => {
   res.status(200).send("Hello World!");
 });
 
@@ -23,7 +23,7 @@ app.use((error, req, res, next) => {
 });
 
 app.all("*", (req, res) => {
-  res.status(405).send({ message: "Invalid Route" });
+  res.status(404).send({ message: "Invalid Route" });
 });
 
 app.listen(port, () => {

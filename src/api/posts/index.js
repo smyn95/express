@@ -1,141 +1,127 @@
 const express = require("express");
-const connection = require("../../db");
 const router = express.Router();
-
-// id로 글 조회
-async function getById(_id) {
-  try {
-    const { rows } = await connection.query(`
-        select _posts.id, name, title, content, created_on 
-        from _posts
-          inner join _users 
-          on _posts.user_id = _users.id
-        where _posts.id = '${_id}'
-    `);
-    return rows[0];
-  } catch (error) {
-    return null;
-  }
-}
-
-// 글 생성
-async function create({ user_id, title, content }) {
-  try {
-    await connection.query(`
-		insert into _posts (id, user_id, title, content, created_on) 
-		values ('${uuid.v1()}', '${user_id}', '${title}', '${content}', 
-				'${new Date().toISOString()}')`);
-    return true;
-  } catch (error) {
-    return null;
-  }
-}
-
-// 글 수정
-async function update({ user_id, id, title, content }) {
-  const post = await getById(id);
-  if (!post) return null;
-  try {
-    await connection.query(`
-    update _posts
-    set title ='${title}', content='${content}'
-    where id=='${id}'`);
-    return true;
-  } catch (error) {
-    return null;
-  }
-}
-
-// 글 삭제
-async function remove({ user_id, _id }) {
-  const post = await getById(_id);
-  if (!post) return null;
-  try {
-    await connection.query(`delete from _posts where id='${_id}'`);
-    return true;
-  } catch (error) {
-    return null;
-  }
-}
+const { connection } = require("../../db/index");
+const { v1: uuidv1 } = require("uuid");
 
 // 글 전체 조회
-router.get("/", async (req, res) => {
+router.get("/api/posts", async (req, res) => {
   try {
-    const { rows } = await connection.query(`
-      select _posts.id, name, title, created_on 
-      from _posts inner join _users on _posts.user_id = _users.id
-    `);
-    res.send(rows);
+    const query = `
+      SELECT _posts.id, name, title, created_on 
+      FROM _posts 
+      INNER JOIN _users ON _posts.user_id = _users.id
+    `;
+
+    const [rows] = await connection.promise().query(query);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "글이 없습니다." });
+    }
+
+    return res.json(rows);
   } catch (error) {
-    res.status(400).send({ message: "글 조회중 오류가 발생했습니다." });
+    console.error("Error retrieving posts:", error);
+    return res.status(500).json({ message: "글 조회 중 오류가 발생했습니다." });
   }
 });
 
 // 글 단일 조회
-router.get("/:id", async (req, res) => {
-  const post = await getById(req.params.id);
-  // TODO 글이 존재하는지 체크
-  if (!post) {
-    res.status(400).send({ message: "존재하지 않는 글입니다." });
-    return;
-  }
-  res.send(post);
-});
+router.get("/api/posts/:id", async (req, res) => {
+  try {
+    const [rows] = await connection.promise().query(
+      `
+      SELECT _posts.id, name, title, content, created_on 
+      FROM _posts 
+      INNER JOIN _users ON _posts.user_id = _users.id
+      WHERE _posts.id = ?
+    `,
+      [req.params.id]
+    );
 
+    if (rows.length === 0) {
+      return res.status(400).send({ message: "존재하지 않는 글입니다." });
+    }
+
+    return res.send(rows[0]);
+  } catch (error) {
+    console.error("Error retrieving post:", error);
+    return res.status(400).send({ message: "글 조회 중 오류가 발생했습니다." });
+  }
+});
 // 글 등록
-router.post("/", async (req, res) => {
+router.post("/api/posts", async (req, res) => {
   const { title, content } = req.body;
 
   if (!title || !content) {
-    res.status(400).send({ message: "제목과 내용은 필수 입력 사항입니다." });
-    return;
+    return res
+      .status(400)
+      .send({ message: "Title과 content는 필수 입력 사항입니다." });
   }
 
-  const result = await create({ title, content });
-  if (!result) {
-    res.status(400).send({ message: "글 등록 실패" });
-    return;
-  }
+  try {
+    const id = uuidv1();
+    const created_on = new Date()
+      .toISOString()
+      .replace("T", " ")
+      .replace("Z", "");
 
-  res.send({ messsage: "글 등록 완료" });
+    await connection
+      .promise()
+      .query(
+        `INSERT INTO _posts (id, title, content, created_on) VALUES (?, ?, ?, ?)`,
+        [id, title, content, created_on]
+      );
+
+    console.log(res.send(data), "res");
+    return res.status(200).send({ message: "글을 등록했습니다." });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    return res.status(400).send({ message: "글 등록에 실패했습니다." });
+  }
 });
 
 // 글 수정
-router.put("/:id", async (req, res) => {
+router.put("/api/posts/:id", async (req, res) => {
   const { title, content } = req.body;
 
   if (!req.params.id || !title || !content) {
-    res.status(400).send({ message: "id, 제목, 내용은 필수 입력 사항입니다." });
-    return;
+    return res
+      .status(400)
+      .send({ message: "id, title, content는 필수 입력 사항입니다." });
   }
 
-  const result = await update({
-    id: req.params.id,
-    user_id: req.user.id,
-    title,
-    content,
-  });
-  if (!result) {
-    res.status(400).send({ message: "글 수정 실패" });
-    return;
+  try {
+    await connection
+      .promise()
+      .query(`UPDATE _posts SET title = ?, content = ? WHERE id = ?`, [
+        title,
+        content,
+        req.params.id,
+      ]);
+
+    return res.status(200).send({ message: "글을 수정했습니다." });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res.status(400).send({ message: "글 수정에 실패했습니다." });
   }
-  res.send({ message: "글 수정 완료" });
 });
 
 // 글 삭제
-router.delete("/:id", async (req, res) => {
+router.delete("/api/posts/:id", async (req, res) => {
   if (!req.params.id) {
-    res.status(400).send({ message: "id는 필수 입력 사항입니다." });
-    return;
-  }
-  const result = await remove({ id: req.params.id, user_id: req.user.id });
-
-  if (!result) {
-    res.status(400).send({ message: "존재하지 않는 글입니다." });
-    return;
+    return res.status(400).send({ message: "id는 필수 입력 사항입니다." });
   }
 
-  res.send({ message: "글을 삭제했습니다." });
+  try {
+    await connection
+      .promise()
+      .query(`DELETE FROM _posts WHERE id = ?`, [req.params.id]);
+
+    return res.status(200).send({ message: "글을 삭제했습니다." });
+  } catch (error) {
+    console.error("Error removing post:", error);
+    return res.status(400).send({ message: "글 삭제에 실패했습니다." });
+  }
 });
 
 module.exports = router;
